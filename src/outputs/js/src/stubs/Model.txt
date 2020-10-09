@@ -1,0 +1,14 @@
+const Model = require("../Base/Model");
+
+class {{class}} extends Model
+{
+    /**
+     * Construtor.
+     */
+    constructor (attrs = {})
+    {
+        super(attrs);
+    }
+}
+
+module.exports = {{class}};

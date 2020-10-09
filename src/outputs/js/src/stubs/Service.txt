@@ -1,0 +1,17 @@
+const Client = require("./Base/Client");
+const { Arr } = require("@rhinojs/support");{{uses}}
+
+class {{class}} extends Client
+{
+    /**
+     * Construtor.
+     */
+    constructor (opts = {})
+    {
+        super(opts);{{constructor}}
+    }
+
+{{methods}}    
+}
+
+module.exports = {{class}};

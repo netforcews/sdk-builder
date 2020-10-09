@@ -1,0 +1,17 @@
+const Resource = require("../Base/Resource");
+const { Arr } = require("@rhinojs/support");{{uses}}
+
+class {{class}} extends Resource
+{
+    /**
+     * Construtor.
+     */
+    constructor (client)
+    {
+        super(client);
+    }
+
+{{methods}}    
+}
+
+module.exports = {{class}};

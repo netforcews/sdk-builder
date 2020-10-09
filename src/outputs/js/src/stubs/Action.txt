@@ -1,0 +1,20 @@
+    /**
+     * {{desc}}.
+     * Method: {{method}}
+     * Uri: {{uri}}
+     */
+    async {{name}}({{args}})
+    {
+        // Montar data
+        var _data = {{code_data}};
+
+        // Executar
+        var ret = await this.client.{{method}}(`{{code_uri}}`, _data{{code_query}});
+        if ((ret == null) || (ret == undefined)) {
+            return null;
+        }
+
+{{code_checks}}{{code_afters}}
+        {{code_return}}        
+    }
+

@@ -1,0 +1,1 @@
+        this.{{name}} = new {{class}}(this);
