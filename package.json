@@ -12,7 +12,7 @@
         "builder"
     ],
     "dependencies": {
-        "@rhinojs/console": "^0.1.21",
+        "@rhinojs/console": "^0.1.22",
         "@rhinojs/support": "^0.1.27",
         "glob": "^7.1.6",
         "rimraf": "^3.0.2",
