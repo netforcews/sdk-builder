@@ -33,7 +33,7 @@ class BuildJS extends Build
         var pathServices  = path.resolve(pathBase, 'src');
 
         // Arquivos /root
-        this.copyStub(__dirname + '/js/.gitignore',         pathBase + '/.gitignore');
+        //this.copyStub(__dirname + '/js/.gitignore',         pathBase + '/.gitignore');
         this.copyStub(__dirname + '/js/.babelrc',           pathBase + '/.babelrc');
         this.copyStub(__dirname + '/js/package.json',       pathBase + '/package.json', {
             version  : version,

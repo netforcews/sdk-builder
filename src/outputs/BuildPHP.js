@@ -74,7 +74,7 @@ class BuildPHP extends Build
         var pathServices  = path.resolve(pathBase, 'src');
 
         // Arquivos /root
-        this.copyStub(__dirname + '/php/.gitignore',        pathBase + '/.gitignore');
+        //this.copyStub(__dirname + '/php/.gitignore',        pathBase + '/.gitignore');
         this.copyStub(__dirname + '/php/composer.json',     pathBase + '/composer.json', {
             ns : Str.replaceAll('\\\\', '\\\\', ns),
             version,
