@@ -35,7 +35,7 @@ class BuildJS extends Build
         // Arquivos /root
         //this.copyStub(__dirname + '/js/.gitignore',         pathBase + '/.gitignore');
         this.copyStub(__dirname + '/js/.babelrc',           pathBase + '/.babelrc');
-        this.copyStub(__dirname + '/js/.npmrc',             pathBase + '/.npmrc');
+        this.copyStub(__dirname + '/js/.npmrc.txt',         pathBase + '/.npmrc');
         this.copyStub(__dirname + '/js/package.json',       pathBase + '/package.json', {
             version  : version,
             name     : name,
