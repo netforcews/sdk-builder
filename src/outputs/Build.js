@@ -19,6 +19,26 @@ class Build
         this.options = opts;
 
         this._loadDefs();
+
+        this.defs = {
+            strVar(key) {
+                return '${' + key + '}';
+            },
+
+            newObj(code = '') {
+                return '{' + code + '}';
+            },
+
+            keyValue(key, val) {
+                return "'" + key + "': " + val + ",";
+            },
+
+            returnVar: 'return ret;',
+
+            returnArrGetBool(key) {
+                return "return (Arr.get(ret, '" + key + "') == true);";
+            }
+        };
     }
 
     /**
@@ -210,7 +230,7 @@ class Build
         this.copyStub(pathStubs + '/Resource.txt', pathResources + '/' + className + '.js', {
             class   : className,
             uses    : this.__buildClassUses(actions, {}, '../', pathStubs),
-            methods : '', //????????????????????????????????
+            methods : this.__buildClassActions(actions, pathStubs),
         });
     }
 
@@ -231,7 +251,7 @@ class Build
             class       : className,
             uses        : this.__buildClassUses(actions, resources, './', pathStubs),
             constructor : this.__buildClassContructor(resources, pathStubs),
-            methods     : '', //????????????????????????????????
+            methods     : this.__buildClassActions(actions, pathStubs),
         });
 
         return className;
@@ -318,6 +338,235 @@ class Build
 
             code += "\r\n" + code_prop;
         });
+
+        return code;
+    }
+
+    /**
+     * Compilar actions.
+     */
+    __buildClassActions(actions, pathStubs)
+    {
+        var $this = this;
+        var code = '';
+
+        Arr.each(actions, (act_name, act_info) => {
+            
+            var code_action = $this.getStub(pathStubs + '/Action.txt', {
+                name        : act_name,
+                args        : $this.__buildActionArgs(act_info),
+                desc        : act_info.desc ? act_info.desc : ('Action ' + act_name),
+                method      : act_info.method,
+                uri         : act_info.uri,
+                code_uri    : $this.__buildActionCodeUri(act_info),
+                code_data   : $this.__buildActionCodeData(act_info),
+                code_query  : $this.__buildActionCodeQuery(act_info),
+                code_checks : '',
+                code_afters : $this.__buildActionCodeEventsAfter(act_info, pathStubs),
+                code_return : $this.__buildActionCodeReturn(act_info, pathStubs),
+            });
+
+            code += code_action;
+        });
+
+        return code;
+    }
+
+    /**
+     * Compilar action args.
+     */
+    __buildActionArgs(action)
+    {
+        if (!action.args) {
+            return '';
+        }
+
+        var code = '';
+
+        Arr.each(action.args, (arg_name, arg_info) => {
+            code += (code != '') ? ', ' : '';
+            code += arg_name;
+
+            var def = Arr.get(arg_info, 'default');
+
+            if (def) {
+                code += ' = ';
+
+                if (def1 === true) {
+                    code += 'true';
+                } else if (def === false) {
+                    code += 'false';
+                } else {
+                    code += def;
+                }
+            }
+
+        });
+
+        return code;
+    }
+
+    /**
+     * Compilar action code uri.
+     */
+    __buildActionCodeUri(action)
+    {
+        var $this = this;
+        var uri = action.uri;
+
+        if (!action.args) {
+            return uri;
+        }
+
+        // Traduzir params names
+        Arr.each(action.args, (arg_name, arg_info) => {
+            if ((arg_info != null) && (arg_info.type && (arg_info.type == 'param'))) {
+                uri = Str.replaceAll('{' + arg_name + '}', $this.defs.strVar(arg_name), uri);
+            }
+        });
+
+        return uri;
+    }
+
+    /**
+     * Compilar action code data.
+     */
+    __buildActionCodeData(action)
+    {
+        if (!action.args) {
+            return this.defs.newObj();
+        }
+
+        var lenPrefix = 12;
+        var code  = '';
+        var $this = this;
+        var prefix = ('').padEnd(lenPrefix, ' ');
+
+        var ret = Arr.each(action.args, (arg_name, arg_info) => {
+            var type = Arr.get(arg_info, 'type', 'data');
+
+            if (type == 'unique') {
+                return arg_name;
+            }
+
+            if (type == 'data') {
+                code += '\r\n' + prefix;
+                code += $this.defs.keyValue(arg_name, arg_name);
+            }
+
+        });
+
+        if (ret) {
+            return ret;
+        }
+
+        code += (code != '') ? "\r\n" + (('').padEnd(lenPrefix - 4, ' ')) : '';
+
+        return this.defs.newObj(code);
+    }
+
+    /**
+     * Compilar action code query.
+     */
+    __buildActionCodeQuery(action)
+    {
+        var $this = this;
+
+        if (!action.args) {
+            return '';
+        }
+
+        var query = [];
+
+        var ret = Arr.each(action.args, (arg_name, arg_info) => {
+            var type = Arr.get(arg_info, 'type', 'data');
+            if (type == 'query') {
+                query.push($this.defs.keyValue(arg_name, arg_name));
+            }
+
+            if (type == 'query_unique') {
+                return ', ' + arg_name;
+            }
+        });
+
+        if (ret) {
+            return ret;
+        }
+
+        if (query.length == 0) {
+            return '';
+        }
+
+        return ', ' + this.defs.newObj(query.join(','));
+    }
+
+    /**
+     * Compilar action code events after.
+     */
+    __buildActionCodeEventsAfter(action, pathStubs)
+    {
+        var afters = Arr.get(action, 'events.after');
+        if (!afters) {
+            return '';
+        }
+
+        var code = '';
+        var $this = this;
+
+        Arr.each(afters, (param_key, ret_key) => {
+            var after_stub = (ret_key == null) ? '/EventAfterNull.txt' : '/EventAfter.txt';
+
+            var code_after = $this.getStub(pathStubs + after_stub, {
+                param_key : param_key,
+                ret_key   : ret_key,
+            });
+
+            code += "\r\n" + code_after;
+        });
+
+        return code;
+    }
+
+    /**
+     * Compilar action code return.
+     */
+    __buildActionCodeReturn(action, pathStubs)
+    {
+        var code = this.defs.returnVar;
+
+        if (!action.return) {
+            return code;
+        }
+
+        var ret = action.return;
+        var ret_type     = Arr.get(ret, 'type', 'direct');
+        var ret_resource = Arr.get(ret, 'resource', '');
+        var ret_value     = Arr.get(ret, 'value', '');
+
+        switch (ret_type) {
+
+            case 'model':
+                code = this.getStub(pathStubs + '/ReturnModel.txt', {
+                    class: Str.studly(ret_resource),
+                });
+                break;
+
+            case 'boolean':
+                if (ret_value === true) {
+                    code = 'return true;';
+                } else if (ret_value === false) {
+                    code = 'return false;';
+                } else {
+                    var parts = ret_value.split('.');
+                    if (parts[0] == 'ret') {
+                        parts = parts.slice(1);
+                    }
+                    parts = parts.join('.');
+
+                    code = this.defs.returnArrGetBool(parts);
+                }
+                break;
+        }
 
         return code;
     }

@@ -13,7 +13,7 @@
     ],
     "dependencies": {
         "@rhinojs/console": "^0.1.21",
-        "@rhinojs/support": "^0.1.23",
+        "@rhinojs/support": "^0.1.25",
         "glob": "^7.1.6",
         "rimraf": "^3.0.2",
         "yaml": "^1.10.0",
