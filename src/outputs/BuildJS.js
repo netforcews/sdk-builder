@@ -1,15 +1,17 @@
+const Arr = require('@rhinojs/support/src/arr');
 const fs = require('fs');
 const path = require('path');
 var rimraf = require("rimraf");
 const Build = require("./Build");
-const { Arr, Str } = require('@rhinojs/support');
 
 class BuildJS extends Build
 {
     /**
      * Executar o build JS.
      */
-    build() {        
+    build() {
+        var $this = this;
+
         // Carregar parametros
         var version       = this.config('build.version',                 '0.0.0');
         var name          = this.config('build.config.js.name',          'nws-sdk');
@@ -19,6 +21,7 @@ class BuildJS extends Build
 
         // Preparar diretorios
         var pathBase = this.getPath('js', { version: this.config('build.version', '0.0.0') });
+        var pathStubs = __dirname + '/js/src/stubs';
 
         // Se pasta existir deve limpar
         if (fs.existsSync(pathBase)) {
@@ -53,40 +56,23 @@ class BuildJS extends Build
         this.copyStub(__dirname + '/js/src/Resource.js',   pathBase + '/src/Base/Resource.js');
 
         // Models /src/Models
-        var keys = Object.keys(this.models);
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i];
-            const model = this.models[key];
-            this.buildModel(pathModels, model);
-        }
+        Arr.each(this.models, (key, model) => {
+            $this.buildModel(pathModels, model, pathStubs);
+        });
 
-        // Models /src/Resources
-        //foreach ($this->resources as $resource) {
-        //    $this->buildJsResource($pathResources, $resource);
-        //}
+        // Resources /src/Resources
+        Arr.each(this.resources, (key, resource) => {
+            $this.buildResource(pathResources, resource, pathStubs);
+        });
 
         // Services /src
         var services = [];
-        //foreach ($this->services as $service) {
-        //    $services[] = $this->buildJsService($pathServices, $service);
-        //}
-
-        this.copyIndex(services, pathBase);
-    }
-
-    /**
-     * Copilar model.
-     * 
-     * @param {String} pathModels Path base dos models.
-     * @param {Object} model Definição do model
-     */
-    buildModel(pathModels, model)
-    {
-        var className = Str.studly(Arr.get(model, 'model', ''));
-
-        this.copyStub(__dirname + '/js/src/stubs/Model.txt', pathModels + '/' + className + '.js', {
-            class: className
+        Arr.each(this.services, (key, service) => {
+            services.push($this.buildService(pathServices, service, pathStubs));
         });
+
+        // Gerar arquivo index.js
+        this.copyIndex(services, pathBase);
     }
 
     /**

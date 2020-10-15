@@ -12,11 +12,11 @@
         "builder"
     ],
     "dependencies": {
-        "yargs": "^16.0.3",
-        "yaml": "^1.10.0",
+        "@rhinojs/console": "^0.1.21",
+        "@rhinojs/support": "^0.1.23",
         "glob": "^7.1.6",
         "rimraf": "^3.0.2",
-        "@rhinojs/support": "^0.1.22",
-        "@rhinojs/console": "^0.1.21"
+        "yaml": "^1.10.0",
+        "yargs": "^16.0.3"
     }
 }

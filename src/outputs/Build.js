@@ -65,11 +65,9 @@ class Build
 
         var ret = path.resolve(prjPath, outPath);
 
-        var keys = Object.keys(params);
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i];
-            ret = Str.replaceAll('\\[' + key + '\\]', params[key], ret);
-        }
+        Arr.each(params, (key, param) => {
+            ret = Str.replaceAll('\\[' + key + '\\]', param, ret);
+        });
 
         return ret;
     }
@@ -115,11 +113,9 @@ class Build
         var buffer = fs.readFileSync(sourceFile).toString();
 
         // Fazer trocas
-        var keys = Object.keys(params);
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i];
-            buffer = Str.replaceAll("{{" + key + "}}", params[key], buffer);
-        }
+        Arr.each(params, (key, param) => {
+            buffer = Str.replaceAll("{{" + key + "}}", param, buffer);
+        });
 
         return buffer;
     }
@@ -181,6 +177,149 @@ class Build
         }
 
         return list;
+    }
+
+    /**
+     * Copilar models.
+     * 
+     * @param {String} pathModels Path base dos models.
+     * @param {Object} model Definição do model
+     * @param {String} pathStubs Path base dos stubs
+     */
+    buildModel(pathModels, model, pathStubs)
+    {
+        var className = Str.studly(Arr.get(model, 'model', ''));
+
+        this.copyStub(pathStubs + '/Model.txt', pathModels + '/' + className + '.js', {
+            class: className
+        });
+    }
+
+    /**
+     * Copilar resources.
+     * 
+     * @param {String} pathResources Path base dos resources.
+     * @param {Object} resource Definição do resource
+     * @param {String} pathStubs Path base dos stubs
+     */
+    buildResource(pathResources, resource, pathStubs)
+    {
+        var className = Str.studly(Arr.get(resource, 'resource', ''));
+        var actions = Arr.get(resource, 'actions', {});
+
+        this.copyStub(pathStubs + '/Resource.txt', pathResources + '/' + className + '.js', {
+            class   : className,
+            uses    : this.__buildClassUses(actions, {}, '../', pathStubs),
+            methods : '', //????????????????????????????????
+        });
+    }
+
+    /**
+     * Copilar services.
+     * 
+     * @param {String} pathServices Path base dos services.
+     * @param {Object} service Definição do service
+     * @param {String} pathStubs Path base dos stubs
+     */
+    buildService(pathServices, service, pathStubs)
+    {
+        var className = Str.studly(Arr.get(service, 'service', '')) + 'Client';
+        var resources = this.__getDefResources(service);
+        var actions   = Arr.get(service, 'actions', {});
+
+        this.copyStub(pathStubs + '/Service.txt', pathServices + '/' + className + '.js', {
+            class       : className,
+            uses        : this.__buildClassUses(actions, resources, './', pathStubs),
+            constructor : this.__buildClassContructor(resources, pathStubs),
+            methods     : '', //????????????????????????????????
+        });
+
+        return className;
+    }
+
+    /**
+     * Retorna a lista de recursos.
+     * 
+     * @param {Object} def Objeto de definição
+     * @returns {Object}
+     */
+    __getDefResources(def)
+    {
+        var lista = {};
+        var res  = Arr.get(def, 'resources', {});
+
+        Arr.each(res, (res_key, res_value) => {
+            const res_class = Str.studly(res_value);            
+
+            lista[res_key] = {
+                id    : res_key,
+                class : res_class,
+            };
+        });
+        
+        return lista;
+    }
+
+    /**
+     * Compilar uses.
+     */
+    __buildClassUses(actions, properties, pathNS, pathStubs)
+    {
+        var code = '';
+
+        //-----------------------------------------------------------------------
+        // Model das ações
+        //-----------------------------------------------------------------------
+        Arr.each(actions, (key, action) => {
+            var ret_type = Arr.get(action, 'return.type', 'direct');
+            if (ret_type == 'model') {
+                var ret_model = Arr.get(action, 'return.resource', '');
+
+                var code_prop = this.getStub(pathStubs + '/Uses.txt', {
+                    ns    : pathNS + 'Models/',
+                    const : Str.studly(ret_model) + 'Model',
+                    class : Str.studly(ret_model),
+                });
+
+                code += "\r\n" + code_prop;
+            }
+        });
+
+        //-----------------------------------------------------------------------
+        // Rescursos
+        //-----------------------------------------------------------------------
+        Arr.each(properties, (key, prop) => {
+            var code_prop = this.getStub(pathStubs + '/Uses.txt', {
+                ns    : pathNS + 'Resources/',
+                const : prop.class,
+                class : prop.class,
+            });
+
+            code += "\r\n" + code_prop;
+        });
+
+        return code;
+    }
+
+    /**
+     * Compilar constructors.
+     */
+    __buildClassContructor(properties, pathStubs)
+    {
+        var $this = this;
+        var code = '';
+
+        Arr.each(properties, (key, prop) => {
+            var code_prop = $this.getStub(pathStubs + '/Constructor.txt', {
+                name  : prop.id,
+                ns    : 'Resources/',
+                class : prop.class,
+            });
+
+            code += "\r\n" + code_prop;
+        });
+
+        return code;
     }
 }
 
