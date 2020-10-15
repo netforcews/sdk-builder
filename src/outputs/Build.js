@@ -2,7 +2,8 @@ const fs = require('fs');
 const glob = require('glob');
 const path = require('path');
 const yaml = require('yaml');
-const { Arr, Str } = require('@rhinojs/support');
+const { Arr, Str, Obj } = require('@rhinojs/support');
+const { parse } = require('querystring');
 
 class Build
 {
@@ -25,6 +26,14 @@ class Build
                 return '${' + key + '}';
             },
 
+            varName(key) {
+                return key;
+            },
+
+            ns(part) {
+                return part + '/';
+            },
+
             newObj(code = '') {
                 return '{' + code + '}';
             },
@@ -34,6 +43,8 @@ class Build
             },
 
             returnVar: 'return ret;',
+
+            fileExt: '.js',
 
             returnArrGetBool(key) {
                 return "return (Arr.get(ret, '" + key + "') == true);";
@@ -205,14 +216,15 @@ class Build
      * @param {String} pathModels Path base dos models.
      * @param {Object} model Definição do model
      * @param {String} pathStubs Path base dos stubs
+     * @param {Object} params Lista de parametros gerais
      */
-    buildModel(pathModels, model, pathStubs)
+    buildModel(pathModels, model, pathStubs, params = {})
     {
         var className = Str.studly(Arr.get(model, 'model', ''));
 
-        this.copyStub(pathStubs + '/Model.txt', pathModels + '/' + className + '.js', {
-            class: className
-        });
+        this.copyStub(pathStubs + '/Model.txt', pathModels + '/' + className + this.defs.fileExt, Obj.merge(params, {
+            class: className,
+        }));
     }
 
     /**
@@ -221,17 +233,19 @@ class Build
      * @param {String} pathResources Path base dos resources.
      * @param {Object} resource Definição do resource
      * @param {String} pathStubs Path base dos stubs
+     * @param {Object} params Lista de parametros gerais
      */
-    buildResource(pathResources, resource, pathStubs)
+    buildResource(pathResources, resource, pathStubs, params = {})
     {
         var className = Str.studly(Arr.get(resource, 'resource', ''));
         var actions = Arr.get(resource, 'actions', {});
 
-        this.copyStub(pathStubs + '/Resource.txt', pathResources + '/' + className + '.js', {
-            class   : className,
-            uses    : this.__buildClassUses(actions, {}, '../', pathStubs),
-            methods : this.__buildClassActions(actions, pathStubs),
-        });
+        this.copyStub(pathStubs + '/Resource.txt', pathResources + '/' + className + this.defs.fileExt, Obj.merge(params, {
+            class      : className,
+            uses       : this.__buildClassUses(actions, {}, '../', pathStubs),
+            properties : '',
+            methods    : this.__buildClassActions(actions, pathStubs, params),
+        }));
     }
 
     /**
@@ -240,19 +254,21 @@ class Build
      * @param {String} pathServices Path base dos services.
      * @param {Object} service Definição do service
      * @param {String} pathStubs Path base dos stubs
+     * @param {Object} params Lista de parametros gerais
      */
-    buildService(pathServices, service, pathStubs)
+    buildService(pathServices, service, pathStubs, params = {})
     {
         var className = Str.studly(Arr.get(service, 'service', '')) + 'Client';
         var resources = this.__getDefResources(service);
         var actions   = Arr.get(service, 'actions', {});
 
-        this.copyStub(pathStubs + '/Service.txt', pathServices + '/' + className + '.js', {
+        this.copyStub(pathStubs + '/Service.txt', pathServices + '/' + className + this.defs.fileExt, Obj.merge(params, {
             class       : className,
             uses        : this.__buildClassUses(actions, resources, './', pathStubs),
-            constructor : this.__buildClassContructor(resources, pathStubs),
-            methods     : this.__buildClassActions(actions, pathStubs),
-        });
+            constructor : this.__buildClassContructor(resources, pathStubs, params),
+            properties  : this.__buildClassProperties(resources, pathStubs, params),
+            methods     : this.__buildClassActions(actions, pathStubs, params),
+        }));
 
         return className;
     }
@@ -324,15 +340,17 @@ class Build
     /**
      * Compilar constructors.
      */
-    __buildClassContructor(properties, pathStubs)
+    __buildClassContructor(properties, pathStubs, params)
     {
         var $this = this;
         var code = '';
 
+        var ns = Arr.get(params, 'ns', '');
+
         Arr.each(properties, (key, prop) => {
             var code_prop = $this.getStub(pathStubs + '/Constructor.txt', {
                 name  : prop.id,
-                ns    : 'Resources/',
+                ns    : ns + $this.defs.ns('Resources'),
                 class : prop.class,
             });
 
@@ -343,9 +361,32 @@ class Build
     }
 
     /**
+     * Compilar propriedades.
+     */
+    __buildClassProperties(properties, pathStubs, params)
+    {
+        var $this = this;
+        var code = '';
+
+        var ns = Arr.get(params, 'ns', '');
+
+        Arr.each(properties, (key, prop) => {
+            var code_prop = $this.getStub(pathStubs + '/Property.txt', Obj.merge(params, {
+                name  : prop.id,
+                ns    : ns + $this.defs.ns('Resources'),
+                class : prop.class,
+            }));
+
+            code += code_prop;
+        });
+
+        return code;
+    }
+
+    /**
      * Compilar actions.
      */
-    __buildClassActions(actions, pathStubs)
+    __buildClassActions(actions, pathStubs, params)
     {
         var $this = this;
         var code = '';
@@ -363,7 +404,7 @@ class Build
                 code_query  : $this.__buildActionCodeQuery(act_info),
                 code_checks : '',
                 code_afters : $this.__buildActionCodeEventsAfter(act_info, pathStubs),
-                code_return : $this.__buildActionCodeReturn(act_info, pathStubs),
+                code_return : $this.__buildActionCodeReturn(act_info, pathStubs, params),
             });
 
             code += code_action;
@@ -377,6 +418,8 @@ class Build
      */
     __buildActionArgs(action)
     {
+        var $this = this;
+
         if (!action.args) {
             return '';
         }
@@ -385,7 +428,7 @@ class Build
 
         Arr.each(action.args, (arg_name, arg_info) => {
             code += (code != '') ? ', ' : '';
-            code += arg_name;
+            code += $this.defs.varName(arg_name);
 
             var def = Arr.get(arg_info, 'default');
 
@@ -446,12 +489,12 @@ class Build
             var type = Arr.get(arg_info, 'type', 'data');
 
             if (type == 'unique') {
-                return arg_name;
+                return $this.defs.varName(arg_name);
             }
 
             if (type == 'data') {
                 code += '\r\n' + prefix;
-                code += $this.defs.keyValue(arg_name, arg_name);
+                code += $this.defs.keyValue(arg_name, $this.defs.varName(arg_name));
             }
 
         });
@@ -481,11 +524,11 @@ class Build
         var ret = Arr.each(action.args, (arg_name, arg_info) => {
             var type = Arr.get(arg_info, 'type', 'data');
             if (type == 'query') {
-                query.push($this.defs.keyValue(arg_name, arg_name));
+                query.push($this.defs.keyValue(arg_name, $this.defs.varName(arg_name)));
             }
 
             if (type == 'query_unique') {
-                return ', ' + arg_name;
+                return ', ' + $this.defs.varName(arg_name);
             }
         });
 
@@ -530,7 +573,7 @@ class Build
     /**
      * Compilar action code return.
      */
-    __buildActionCodeReturn(action, pathStubs)
+    __buildActionCodeReturn(action, pathStubs, params)
     {
         var code = this.defs.returnVar;
 
@@ -546,9 +589,9 @@ class Build
         switch (ret_type) {
 
             case 'model':
-                code = this.getStub(pathStubs + '/ReturnModel.txt', {
+                code = this.getStub(pathStubs + '/ReturnModel.txt', Obj.merge(params, {
                     class: Str.studly(ret_resource),
-                });
+                }));
                 break;
 
             case 'boolean':

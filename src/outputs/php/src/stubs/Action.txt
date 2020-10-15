@@ -1,0 +1,20 @@
+    /**
+     * {{desc}}.
+     * Method: {{method}}
+     * Uri: {{uri}}
+     */
+    public function {{name}}({{args}})
+    {
+        // Montar data
+        $_data = {{code_data}};
+
+        // Executar
+        $ret = $this->client->{{method}}("{{code_uri}}", $_data{{code_query}})->toJson();
+        if (is_null($ret)) {
+            return null;
+        }
+
+{{code_checks}}{{code_afters}}
+        {{code_return}}        
+    }
+

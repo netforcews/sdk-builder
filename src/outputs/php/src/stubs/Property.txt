@@ -1,0 +1,5 @@
+    /**
+     * @var \{{ns}}{{class}}
+     */
+    public ${{name}} = null;
+

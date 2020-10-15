@@ -1,5 +1,6 @@
 const { Arr } = require('@rhinojs/support');
 const BuildJS = require('./outputs/BuildJS');
+const BuildPHP = require('./outputs/BuildPHP');
 
 class SdkBuild
 {
@@ -15,7 +16,7 @@ class SdkBuild
 
         this.outputs = {
             js: true,
-            php: false,
+            php: true,
         };
 
     }
@@ -51,6 +52,11 @@ class SdkBuild
                 case 'js':
                     var $js = new BuildJS(this.cmd, this.project, this.options);
                     $js.build();
+                    break;
+
+                case 'php':
+                    var $php = new BuildPHP(this.cmd, this.project, this.options);
+                    $php.build();
                     break;
 
                 default:

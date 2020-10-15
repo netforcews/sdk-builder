@@ -4,7 +4,7 @@
     "private": false,
     "license": "MIT",
     "author": "Bruno Gonçalves",
-    "main": "cmd",
+    "main": "sdkb",
     "keywords": [
         "nws",
         "js",
@@ -13,14 +13,13 @@
     ],
     "dependencies": {
         "@rhinojs/console": "^0.1.21",
-        "@rhinojs/support": "^0.1.25",
+        "@rhinojs/support": "^0.1.27",
         "glob": "^7.1.6",
         "rimraf": "^3.0.2",
         "yaml": "^1.10.0",
         "yargs": "^16.0.3"
     },
-
     "bin": {
-        "sdkb": "./cmd"
+        "sdkb": "./sdkb"
     }
 }

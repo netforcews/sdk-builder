@@ -1,0 +1,1 @@
+return new \{{ns}}\Models\{{class}}($ret);

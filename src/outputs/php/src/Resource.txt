@@ -1,0 +1,45 @@
+<?php
+
+namespace {{ns}}\Base;
+
+class Resource
+{
+    /**
+     * @var Client
+     */
+    protected $client;
+
+    /**
+     * Construtor.
+     * 
+     * @param Client $client
+     */
+    public function __construct($client)
+    {
+        $this->client = $client;
+    }
+
+    /**
+     * Atribuir parametros.
+     * 
+     * @param string $key
+     * @param mixed $value
+     * @return $this
+     */
+    public function setParam($key, $value)
+    {
+        return $this->client->setParam($key, $value);
+    }
+
+    /**
+     * Retorna um parametro.
+     * 
+     * @param string $key
+     * @param mixed $default
+     * @return mixed
+     */
+    public function param($key, $default = null)
+    {
+        return $this->client->param($key, $default);
+    }
+}

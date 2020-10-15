@@ -1,0 +1,3 @@
+        if (Arr::exists($ret, '{{ret_key}}')) {
+            $this->setParam('{{param_key}}', Arr::get($ret, '{{ret_key}}'));
+        }

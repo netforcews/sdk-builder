@@ -1,0 +1,348 @@
+<?php
+
+namespace {{ns}}\Base;
+
+use Exception;
+use Illuminate\Support\Arr;
+use GuzzleHttp\Client as HttpClient;
+
+abstract class Client
+{
+    const envSandbox    = 'sandbox';
+    const envProduction = 'production';
+    const envLocal      = 'local';
+
+    /**
+     * @var string
+     */
+    protected $version = '{{version}}';
+
+    /**
+     * @var HttpClient
+     */
+    protected $http;
+
+    /**
+     * @var array
+     */
+    protected $options = [];
+
+    /**
+     * Lista de opcoes padrao.
+     * @var array
+     */
+    protected $defaultOptions = [
+        'env'          => self::envProduction,
+        'global_token' => true,
+    ];
+
+    /**
+     * Lista de endpoints.
+     * @var array
+     */
+    protected $endpoints = [
+        self::envProduction => '{{env_production}}',
+        self::envSandbox    => '{{env_sandbox}}',
+        self::envLocal      => '{{env_local}}',
+    ];
+
+    /**
+     * Lista de parametros.
+     * @var array
+     */
+    protected $params = [];
+
+    /**
+     * Alias to $this;
+     * 
+     * @var Client
+     */
+    protected $client;
+
+    /**
+     * Construtor.
+     * 
+     * @param array $options
+     */
+    public function __construct($options = [])
+    {
+        $this->client = $this;
+        $this->http = new HttpClient();
+        $this->options = array_merge([], $this->defaultOptions, $options);
+
+        // Verificar se deve heardar o token do contexto global
+        $globalToken = $this->option('global_token') ? Arr::get($GLOBALS, 'auth.accessToken') : null;
+
+        // Verificar se token foi informado ou recuperado do contexto
+        $this->setAccessToken($this->option('access_token', $globalToken));
+    }
+
+    /**
+     * Retorna a URL.
+     * 
+     * @param string $part
+     * @return string
+     */
+    protected function getUrl($part)
+    {
+        $env = $this->option('env', self::envProduction);
+        if (!array_key_exists($env, $this->endpoints)) {
+            throw new Exception("ENV [$env] nao configurado");
+        }
+
+        $part = trim($part);
+        $base = $this->endpoints[$env];
+
+        return ($part != '') ? $base . '/' . $part : $base;
+    }
+
+    /**
+     * Retorna um parametro da lista de opções.
+     * 
+     * @param string $key
+     * @param mixed $default
+     * @return mixed
+     */
+    protected function option($key, $default = null)
+    {
+        return Arr::get($this->options, $key, $default);
+    }
+
+    /**
+     * Atribuir configuracoes de opcoes.
+     * 
+     * @param array $options
+     */
+    public function configure($options)
+    {
+        $this->options = array_merge([], $this->options, $options);
+    }
+
+    /**
+     * Enviar requisição.
+     * 
+     * @param string $method
+     * @param string $part
+     * @param array $params
+     * @param array $headers
+     * @return Response
+     */
+    protected function request($method, $part, $params = [], $headers = [])
+    {
+        $method = strtoupper($method);
+
+        // Mopntar cabeçalhos
+        $headers = array_merge([
+            'Cache-Control' => 'no-cache',
+            'User-Agent'    => 'nws/' . $this->version . ' ' . \GuzzleHttp\default_user_agent(),
+        ], $headers);
+
+        // Tratar access token
+        if (!is_null($this->getAccessToken())) {
+            $headers['Authorization'] = $this->getAccessToken();
+        }
+
+        // Montar URL
+        $url = $this->getUrl($part);
+
+        // Opcoes
+        $opts = array_merge([
+            'headers' => $headers
+        ], $params);
+
+        // Verificar se deve remover json
+        if (isset($opts['json']) && (count($opts['json']) == 0)) {
+            unset($opts['json']);
+        }
+
+        // Executar
+        $res = $this->http->request($method, $url, $opts);
+
+        // Verificar error em resposta
+        $this->checkResponse($res);
+
+        return new Response($res);
+    }
+
+    /**
+     * Enviar requisição.
+     * 
+     * @param string $method
+     * @param string $part
+     * @param array $data
+     * @param array $headers
+     * @return Response
+     */
+    protected function requestJson($method, $part, $data = [], $query = [], $headers = [])
+    {
+        $headers = array_merge([
+            'Content-Type' => 'application/json',
+        ], $headers);
+
+        $params = [
+            'json'  => $data,
+            'query' => $query,
+        ];
+        
+        return $this->request($method, $part, $params, $headers);
+    }
+
+    /**
+     * Verificar se requisição retornou um erro.
+     * 
+     * @param $res
+     * @return bool
+     */
+    protected function checkResponse($res)
+    {
+        // Verificar error http
+        if (!$res->getStatusCode() == 200) {
+            throw new Exception("Error response: " . $res->getStatusCode());
+        }
+
+        // Verificar error via json
+        $json = json_decode($res->getBody());
+        if (is_null($json)) {
+            return true;
+        }
+
+        if (!isset($json->error)) {
+            return true;
+        }
+
+        $message = isset($json->error->message) ? $json->error->message : '???';
+        $code = isset($json->error->code) ? $json->error->code : 0;
+
+        // Verificar se tem erros de atributos
+        if (isset($json->error->errors)) {
+            $info = '';
+            foreach ((array) $json->error->errors as $attr => $msgs) {
+                $info .= " - $attr:\r\n";
+                foreach ($msgs as $msg) {
+                    $info .= "   - $msg\r\n";
+                }
+            }
+
+            $message = sprintf("%s\r\n%s", $message, $info);
+        }
+
+        throw new Exception($message, $code);
+    }
+
+    /**
+     * Atribuir parametros.
+     * 
+     * @param string $key
+     * @param mixed $value
+     * @return $this
+     */
+    public function setParam($key, $value)
+    {
+        Arr::set($this->params, $key, $value);
+
+        if ($key == 'accessToken') {
+            $GLOBALS['auth.accessToken'] = $value;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Retorna um parametro.
+     * 
+     * @param string $key
+     * @param mixed $default
+     * @return mixed
+     */
+    public function param($key, $default = null)
+    {
+        return Arr::get($this->params, $key, $default);
+    }
+
+    /**
+     * Alias: Atribui um Access Token.
+     * 
+     * @param string|null $token
+     * @return $this
+     */
+    public function setAccessToken($token)
+    {
+        return $this->setParam('accessToken', $token);
+    }
+
+    /**
+     * Alias: Retorna o Access Token atual.
+     * 
+     * @return string|null
+     */
+    public function getAccessToken()
+    {
+        return $this->param('accessToken');
+    }
+
+    /**
+     * Executar ação GET.
+     * 
+     * @param string $part
+     * @param array $data
+     * @param array $query
+     * @param array $headers
+     * @return Response
+     */
+    public function get($part, $data = [], $query = [], $headers = [])
+    {
+        return $this->requestJson('get', $part, $data, $query, $headers);
+    }
+
+    /**
+     * Executar ação POST.
+     * 
+     * @param string $part
+     * @param array $data
+     * @param array $query
+     * @param array $headers
+     * @return Response
+     */
+    public function post($part, $data = [], $query = [], $headers = [])
+    {
+        return $this->requestJson('post', $part, $data, $query, $headers);
+    }
+
+    /**
+     * Executar ação PUT.
+     * 
+     * @param string $part
+     * @param array $data
+     * @param array $query
+     * @param array $headers
+     * @return Response
+     */
+    public function put($part, $data = [], $query = [], $headers = [])
+    {
+        return $this->requestJson('put', $part, $data, $query, $headers);
+    }
+
+    /**
+     * Executar ação DELETE.
+     * 
+     * @param string $part
+     * @param array $data
+     * @param array $query
+     * @param array $headers
+     * @return Response
+     */
+    public function delete($part, $data = [], $query = [], $headers = [])
+    {
+        return $this->requestJson('delete', $part, $data, $query, $headers);
+    }
+
+    /**
+     * Retorna a versão do SDK.
+     * 
+     * @return string
+     */
+    public function getVersion()
+    {
+        return $this->version;
+    }
+}

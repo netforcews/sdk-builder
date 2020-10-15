@@ -1,0 +1,16 @@
+.env
+/dist
+
+# Gestores de pacotes
+/vendor
+composer.lock
+/node_modules
+package.lock
+package-lock.json
+
+# Editores
+/.vscode
+/.idea
+
+#Test
+/test

@@ -1,0 +1,13 @@
+<?php
+
+namespace {{ns}}\Resources;
+
+use Illuminate\Support\Arr;
+use {{ns}}\Base\Resource;
+
+class {{class}} extends Resource
+{
+{{properties}}
+
+{{methods}}
+}

@@ -1,0 +1,22 @@
+<?php
+
+namespace {{ns}};
+
+use Illuminate\Support\Arr;
+use {{ns}}\Base\Client;
+
+class {{class}} extends Client
+{
+{{properties}}
+    /**
+     * Contrutor.
+     * 
+     * @param array $options
+     */
+    public function __construct($options = [])
+    {
+        parent::__construct($options);{{constructor}}
+    }
+
+{{methods}}
+}

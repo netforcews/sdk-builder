@@ -1,0 +1,1 @@
+        $this->setParam('{{param_key}}', null);

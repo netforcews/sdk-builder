@@ -1,0 +1,3 @@
+        if (!({{p1}} {{op}} {{p2}})) {
+            return false;
+        }

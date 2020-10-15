@@ -1,0 +1,40 @@
+<?php
+
+namespace {{ns}}\Base;
+
+use GuzzleHttp\Psr7\Response as HttpResponse;
+
+class Response
+{
+    /**
+     * @var HttpResponse
+     */
+    protected $res;
+
+    public function __construct($res)
+    {
+        $this->res = $res;        
+    }
+
+    /**
+     * Retorna body em json(array)
+     * 
+     * @return array
+     */
+    public function toJson()
+    {
+        $json = json_decode($this->res->getBody(), true);
+
+        return $json;
+    }
+
+    public function __get($name)
+    {
+        return $this->res->$name;
+    }
+
+    public function __call($name, $arguments)
+    {
+        return call_user_func_array([$this->res, $name], $arguments);
+    }
+}
