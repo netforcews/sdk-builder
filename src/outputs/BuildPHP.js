@@ -94,6 +94,7 @@ class BuildPHP extends Build
         this.copyStub(__dirname + '/php/src/Response.txt',   pathBase + '/src/Base/Response.php', { ns });
         this.copyStub(__dirname + '/php/src/Resource.txt',   pathBase + '/src/Base/Resource.php', { ns });
         this.copyStub(__dirname + '/php/src/Model.txt',      pathBase + '/src/Base/Model.php',    { ns });
+        this.copyStub(__dirname + '/php/src/ApiClient.txt',  pathServices + '/ApiClient.php',     { ns });
 
         // Models /src/Models
         Arr.each(this.models, (key, model) => {

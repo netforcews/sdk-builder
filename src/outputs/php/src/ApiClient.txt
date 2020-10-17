@@ -1,0 +1,10 @@
+<?php
+
+namespace {{ns}};
+
+use {{ns}}\Base\Client;
+
+class ApiClient extends Client
+{
+    //..
+}

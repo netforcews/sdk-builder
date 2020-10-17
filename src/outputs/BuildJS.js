@@ -55,6 +55,7 @@ class BuildJS extends Build
         });
         this.copyStub(__dirname + '/js/src/Model.js',      pathBase + '/src/Base/Model.js');
         this.copyStub(__dirname + '/js/src/Resource.js',   pathBase + '/src/Base/Resource.js');
+        this.copyStub(__dirname + '/js/src/ApiClient.js',  pathServices + '/ApiClient.js');
 
         // Models /src/Models
         Arr.each(this.models, (key, model) => {
