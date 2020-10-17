@@ -1,10 +1,12 @@
 const { Arr } = require("@rhinojs/support");
+const EventEmitter = require('events');
 
 class Global
 {
     constructor()
     {
         this.data = {};
+        this.__events = new EventEmitter();
     }
 
     /**
@@ -27,10 +29,28 @@ class Global
      */
     set(key, value)
     {
+        // Verificar se mudou
+        if (this.data[key] == value) {
+            return this;
+        }        
+        
         this.data[key] = value;
+
+        this.__events.emit(key, value);
 
         return this;
     }
+
+    /**
+     * Monitorar alteracao de key.
+     * 
+     * @param {String} key Chave do parametro
+     * @param {Function} callback Funcao a ser executada
+     */
+    on(key, callback)
+    {
+        this.__events.on(key, callback);
+    }    
 }
 
 module.exports = new Global();

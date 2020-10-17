@@ -10,6 +10,8 @@ class Client
      */
     constructor (opts)
     {
+        var $this = this;
+
         this.client  = this; // Alias to this.
 
         this.version = '{{version}}';
@@ -21,7 +23,14 @@ class Client
         Object.assign(this.options, opts);
 
         // Verificar se deve heardar o token do contexto global
-        var globalToken = this.option('global_token') ? Global.get('auth.accessToken') : null;
+        var globalToken = null;
+        if (this.option('global_token')) {
+            globalToken = Global.get('auth.accessToken');
+
+            Global.on('auth.accessToken', (value) => {
+                $this.setAccessToken(value);
+            });
+        }        
 
         // Verificar se token foi informado ou recuperado do contexto
         this.setAccessToken(this.option('access_token', globalToken));
@@ -87,6 +96,42 @@ class Client
     {
         return this.param('accessToken');
     }
+
+    /**
+     * Mudar env para sandbox.
+     * 
+     * @returns {Client}
+     */
+    sandbox()
+    {
+        this.setParam('env', Consts.envSandbox);
+
+        return this;
+    }
+
+    /**
+     * Mudar env para local.
+     * 
+     * @returns {Client}
+     */
+    local()
+    {
+        this.setParam('env', Consts.envLocal);
+
+        return this;
+    }
+
+    /**
+     * Mudar env para production.
+     * 
+     * @returns {Client}
+     */
+    production()
+    {
+        this.setParam('env', Consts.envProduction);
+
+        return this;
+    }    
 
     /**
      * Retorna a versão do SDK.
