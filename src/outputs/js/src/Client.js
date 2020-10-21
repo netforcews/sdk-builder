@@ -151,7 +151,7 @@ class Client
      */
     getUrl(part)
     {
-        var env = this.option('env', Consts.envProduction);
+        var env = this.param('env', this.option('env', Consts.envProduction));
         if (typeof Consts.endpoints[env] != 'string') {
             throw new Error("ENV [" + env + "] nao configurado");
         }
