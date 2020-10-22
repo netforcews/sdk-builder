@@ -1,5 +1,5 @@
 const Resource = require("../Base/Resource");
-const { Arr } = require("@rhinojs/support");{{uses}}
+const Arr = require("@rhinojs/support/src/arr");{{uses}}
 
 class {{class}} extends Resource
 {

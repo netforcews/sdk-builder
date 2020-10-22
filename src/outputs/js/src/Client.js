@@ -1,7 +1,7 @@
 const axios  = require('axios');
 const Consts = require('./Consts');
 const Global = require('./Global');
-const { Arr } = require("@rhinojs/support");
+const Arr = require("@rhinojs/support/src/arr");
 
 class Client
 {

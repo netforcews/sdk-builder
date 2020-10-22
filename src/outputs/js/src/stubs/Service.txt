@@ -1,5 +1,5 @@
 const Client = require("./Base/Client");
-const { Arr } = require("@rhinojs/support");{{uses}}
+const Arr = require("@rhinojs/support/src/arr");{{uses}}
 
 class {{class}} extends Client
 {

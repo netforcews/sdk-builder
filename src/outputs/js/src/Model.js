@@ -1,4 +1,4 @@
-const { Arr } = require("@rhinojs/support");
+const Arr = require("@rhinojs/support/src/arr");
 
 class Model
 {
