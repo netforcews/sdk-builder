@@ -112,11 +112,16 @@ class Client
     /**
      * Mudar env para local.
      * 
+     * @param {String} customEndpoint
      * @returns {Client}
      */
-    local()
+    local(customEndpoint = null)
     {
         this.setParam('env', Consts.envLocal);
+
+        if (customEndpoint) {
+            Consts.endpoints.local = customEndpoint;
+        }
 
         return this;
     }
